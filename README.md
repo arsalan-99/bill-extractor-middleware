@@ -5,7 +5,7 @@ Drop any receipt, invoice, or complex and messy handwritten slip — get structu
 ## Preview
 
 <div align="center">
-  <img src="preview.png" alt="Web App Preview" width="600">
+  <img src="preview.png" alt="Web App Preview" width="900">
 </div>
 
 ## Tech Stack
