@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Data Extractor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+    }
+
+    body {
+      background-color: #121211;
+      color: #f0eee9;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      letter-spacing: -0.015em;
+      -webkit-font-smoothing: antialiased;
+      height: 100vh;
+      min-height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 32px;
+      overflow: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1260px;
+      height: 60vh;
+      margin: 0 auto;
+    }
+
+    /* TWO-COLUMN PARALLEL LAYOUT (50/50 SPLIT) */
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+      align-items: stretch;
+      height: 100%;
+      min-height: 0;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+        padding: 32px 16px;
+        display: block;
+      }
+      .container {
+        height: auto;
+      }
+      .layout-grid {
+        grid-template-columns: 1fr;
+        height: auto;
+        gap: 28px;
+      }
+      .right-col {
+        height: auto;
+      }
+      textarea#output {
+        min-height: 400px;
+        height: auto;
+      }
+    }
+
+    /* LEFT COLUMN: HEADER & CONTROLS */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #f0eee9;
+      letter-spacing: -0.02em;
+    }
+
+    .description {
+      color: #9c9991;
+      font-size: 0.85rem;
+    }
+
+    /* FORM & INPUTS */
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #f0eee9;
+    }
+
+    .hint {
+      color: #9c9991;
+      font-size: 0.75rem;
+    }
+
+    /* FILE INPUT AREA */
+    .file-dropzone {
+      background-color: #191918;
+      border: 1px dashed #33322e;
+      border-radius: 6px;
+      padding: 22px 18px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: border-color 150ms ease, background-color 150ms ease;
+    }
+
+    .file-dropzone:hover, .file-dropzone.drag-over {
+      border-color: #4a4843;
+      background-color: #1c1c1b;
+    }
+
+    .dropzone-icon {
+      color: #7a776f;
+      margin-bottom: 2px;
+    }
+
+    .file-dropzone-text {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #f0eee9;
+    }
+
+    .file-dropzone-sub {
+      font-size: 0.75rem;
+      color: #9c9991;
+    }
+
+    .sample-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .sample-label {
+      font-size: 0.75rem;
+      color: #7a776f;
+    }
+
+    .sample-pill-btn {
+      background-color: #242321;
+      color: #c4c1b9;
+      border: 1px solid #363430;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-family: ui-monospace, Menlo, monospace;
+      padding: 3px 8px;
+      cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+    }
+
+    .sample-pill-btn:hover {
+      background-color: #302e2b;
+      color: #f0eee9;
+      border-color: #4a4843;
+    }
+
+    /* SELECTED FILE ROW */
+    .file-selected-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background-color: #191918;
+      border: 1px solid #2b2a27;
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+
+    .file-info-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .file-badge {
+      background-color: #242321;
+      color: #9c9991;
+      font-size: 0.68rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid #33322e;
+      flex-shrink: 0;
+    }
+
+    .file-selected-name {
+      font-size: 0.82rem;
+      color: #f0eee9;
+      font-family: ui-monospace, Menlo, Monaco, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* TEXT INPUT */
+    input[type="text"] {
+      width: 100%;
+      background-color: #191918;
+      border: 1px solid #2b2a27;
+      border-radius: 4px;
+      color: #f0eee9;
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 0.82rem;
+      letter-spacing: -0.015em;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 150ms ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: #3d3b37;
+    }
+
+    input[type="text"]::placeholder {
+      color: #66645e;
+    }
+
+    /* BUTTONS */
+    .button-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-primary {
+      background-color: #eeece8;
+      color: #121211;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      padding: 9px 18px;
+      cursor: pointer;
+      transition: background-color 150ms ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: #dedcd7;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background-color: #1c1b1a;
+      color: #f0eee9;
+      border: 1px solid #33322e;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #242321;
+      border-color: #3d3b37;
+    }
+
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 0.75rem;
+    }
+
+    .input-with-clear {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .input-with-clear input[type="text"] {
+      padding-right: 64px;
+    }
+
+    .btn-clear-input {
+      position: absolute;
+      right: 6px;
+      background-color: #242321;
+      color: #9c9991;
+      border: 1px solid #33322e;
+      border-radius: 3px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 3px 8px;
+      cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+    }
+
+    .btn-clear-input:hover {
+      background-color: #2e2c29;
+      color: #f0eee9;
+      border-color: #42403b;
+    }
+
+    /* RIGHT COLUMN: PARALLEL RESULT BLOCK */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 28px;
+      flex-shrink: 0;
+    }
+
+    .result-label {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #f0eee9;
+    }
+
+    textarea#output {
+      width: 100%;
+      flex: 1;
+      height: 100%;
+      min-height: 0;
+      background-color: #191918;
+      border: 1px solid #2b2a27;
+      border-radius: 6px;
+      padding: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: #f0eee9;
+      overflow-x: auto;
+      overflow-y: auto;
+      white-space: pre;
+      resize: none;
+      outline: none;
+      transition: border-color 150ms ease;
+    }
+
+    textarea#output:focus {
+      border-color: #3d3b37;
+    }
+
+    textarea#output::placeholder {
+      color: #66645e;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="layout-grid">
+      
+      <!-- LEFT COLUMN: EVERYTHING ELSE ON PAGE -->
+      <div class="left-col">
+        <header>
+          <h1>Document Data Extractor</h1>
+          <p class="description">Extract structured JSON from receipts and bills (images or PDFs).</p>
+        </header>
+
+        <form id="extractForm">
+          <!-- File Selector -->
+          <div class="field">
+            <label for="file">Document (Image or PDF)</label>
+            <input type="file" id="file" name="file" accept="image/*,application/pdf" style="display: none;">
+            
+            <div class="file-dropzone" id="dropzone" role="button" tabindex="0">
+              <svg class="dropzone-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <div class="file-dropzone-text">Click to choose a file or drag and drop</div>
+              <div class="file-dropzone-sub">Accepts JPEG, PNG, or PDF</div>
+              <div class="sample-pills">
+                <span class="sample-label">Or test with:</span>
+                <button type="button" class="sample-pill-btn" onclick="loadSample('sample-bill-1.jpeg', event)">sample-bill-1.jpeg</button>
+                <button type="button" class="sample-pill-btn" onclick="loadSample('sample-bill-2.jpeg', event)">sample-bill-2.jpeg</button>
+              </div>
+            </div>
+
+            <div class="file-selected-row hidden" id="fileSelectedRow">
+              <div class="file-info-group">
+                <span class="file-badge">Selected</span>
+                <span class="file-selected-name" id="fileNameDisplay">filename.jpg</span>
+              </div>
+              <button type="button" class="btn-secondary btn-sm" id="btnRemoveFile">Remove</button>
+            </div>
+          </div>
+
+          <!-- Fields Input -->
+          <div class="field">
+            <label for="fields">Fields to extract (optional)</label>
+            <div class="hint">Filter columns</div>
+            <div class="input-with-clear">
+              <input 
+                type="text" 
+                id="fields" 
+                name="fields" 
+                placeholder="e.g. name, amount"
+                autocomplete="off"
+              >
+              <button type="button" class="btn-clear-input hidden" id="btnClearFields" title="Clear fields" aria-label="Clear fields">Clear</button>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="button-row">
+            <button type="submit" class="btn-primary" id="btnSubmit">Extract Data</button>
+            <button type="button" class="btn-secondary" id="btnClear">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- RIGHT COLUMN: EXTRACTED RESULT BLOCK (PARALLEL) -->
+      <div class="right-col">
+        <div class="result-header">
+          <span class="result-label">Result</span>
+          <button type="button" class="btn-secondary btn-sm hidden" id="btnCopy">Copy JSON</button>
+        </div>
+        <textarea id="output" spellcheck="false" placeholder="Upload a file and click Extract Data..."></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file');
+    const dropzone = document.getElementById('dropzone');
+    const fileSelectedRow = document.getElementById('fileSelectedRow');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const btnRemoveFile = document.getElementById('btnRemoveFile');
+    const fieldsInput = document.getElementById('fields');
+    const btnClearFields = document.getElementById('btnClearFields');
+    const extractForm = document.getElementById('extractForm');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const btnClear = document.getElementById('btnClear');
+    const output = document.getElementById('output');
+    const btnCopy = document.getElementById('btnCopy');
+
+    let currentFile = null;
+    let latestData = null;
+
+    function setFile(file) {
+      currentFile = file;
+      if (file) {
+        fileNameDisplay.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        dropzone.classList.add('hidden');
+        fileSelectedRow.classList.remove('hidden');
+      } else {
+        fileInput.value = '';
+        dropzone.classList.remove('hidden');
+        fileSelectedRow.classList.add('hidden');
+      }
+    }
+
+    async function loadSample(name, e) {
+      if (e) e.stopPropagation();
+      try {
+        const res = await fetch(`samples/${name}`);
+        const blob = await res.blob();
+        const file = new File([blob], name, { type: 'image/jpeg' });
+        setFile(file);
+      } catch (err) {
+        console.error('Failed to load sample', err);
+      }
+    }
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        setFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        setFile(e.target.files[0]);
+      }
+    });
+
+    btnRemoveFile.addEventListener('click', () => setFile(null));
+
+    // Fields to extract clear button
+    fieldsInput.addEventListener('input', () => {
+      if (fieldsInput.value.trim()) {
+        btnClearFields.classList.remove('hidden');
+      } else {
+        btnClearFields.classList.add('hidden');
+      }
+    });
+
+    btnClearFields.addEventListener('click', () => {
+      fieldsInput.value = '';
+      btnClearFields.classList.add('hidden');
+      fieldsInput.focus();
+    });
+
+    // Support indenting with Tab inside the editable output block
+    output.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = output.selectionStart;
+        const end = output.selectionEnd;
+        output.value = output.value.substring(0, start) + '  ' + output.value.substring(end);
+        output.selectionStart = output.selectionEnd = start + 2;
+      }
+    });
+
+    btnClear.addEventListener('click', () => {
+      setFile(null);
+      fieldsInput.value = '';
+      btnClearFields.classList.add('hidden');
+      output.value = '';
+      btnCopy.classList.add('hidden');
+      latestData = null;
+    });
+
+    btnCopy.addEventListener('click', async () => {
+      const textToCopy = output.value;
+      if (!textToCopy) return;
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        const prevText = btnCopy.textContent;
+        btnCopy.textContent = 'Copied';
+        setTimeout(() => { btnCopy.textContent = prevText; }, 1500);
+      } catch (err) {
+        console.error('Failed to copy', err);
+      }
+    });
+
+    extractForm.onsubmit = async (e) => {
+      e.preventDefault();
+
+      const file = currentFile || fileInput.files[0];
+      if (!file) {
+        output.value = 'Error: Please select a file to extract.';
+        btnCopy.classList.add('hidden');
+        return;
+      }
+
+      output.value = 'Extracting...';
+      btnSubmit.disabled = true;
+      btnCopy.classList.add('hidden');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (fieldsInput.value.trim()) {
+        formData.append('fields', fieldsInput.value.trim());
+      }
+
+      const endpoint = window.location.protocol.startsWith('http') ? '/extract' : 'http://localhost:3000/extract';
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+
+        latestData = data.data || data;
+        output.value = JSON.stringify(latestData, null, 2);
+        btnCopy.classList.remove('hidden');
+
+      } catch (err) {
+        output.value = 'Error: ' + err.message;
+        latestData = null;
+        btnCopy.classList.add('hidden');
+      } finally {
+        btnSubmit.disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>
